@@ -7,7 +7,7 @@ A Simple Promise Wrapper for [[SSH2](https://github.com/mscdex/ssh2)].
 * [ssh2](https://www.npmjs.com/package/ssh2) -- 0.8.2 or newer
 
 ## Installation
-    Not Available via NPM yet... please, clone the repository to use it.
+    npm i lhssh
     
 ## Usage Examples
 
