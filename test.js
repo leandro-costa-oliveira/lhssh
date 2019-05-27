@@ -13,8 +13,11 @@ const ssh = new LHSSH({ host, port, username, password });
 
 console.log("## EXEC: ", cmd);
 ssh.exec(cmd).then( data => {
-    console.log(data.stdout);
+    console.log("STDOUT:", data.stdout);
+    console.log("DATA:",data);
     ssh.close();
+}).then( _ => {
+    console.log("## DONE");
 }).catch( error => {
-    console.log("## CMD ERROR: ", error);
+    console.log("## CMD ERROR:", error);
 });

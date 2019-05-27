@@ -5,14 +5,28 @@ class LHSSH {
         this.sshConfig = sshConfig;
         this.conn = new SSHClient();
         this.connected = false;
+        // this.debug = false;
     }
 
     connect() { 
         return new Promise( (resolve, reject) => {
             this.conn.on('ready', ()=>{
                 this.connected = true;
+                // if(this.debug) console.log("## CONNECTION ESTABLISHED");
                 resolve(this);
-            }).connect(this.sshConfig);
+            }).on('error', error => {
+                // if(this.debug) console.log("## CONNECTION ERROR:", error);
+                reject(error);
+            }).on('end', () => {
+                if(!this.connected) {
+                    reject("CONEXÃO SSH REJEITADA");
+                }
+                this.connected = false;
+            }).on('close', temErro => {
+                // if(this.debug) console.log("## CONNECTION CLOSED", temErro ? "COM ERROR" : "");
+                this.connected = false;
+            })
+            .connect(this.sshConfig);
         });
     }
 
@@ -27,14 +41,18 @@ class LHSSH {
             let stdout = "";
             let stderr = "";
 
+            // if(this.debug) console.log("## EXEC:" , cmd);
             this.conn.exec(cmd, function(err, stream) {
                 if (err) reject(err);
 
                 stream.on('close', function(code, signal) {
+                    // if(this.debug) console.log("## STREAM CLOSE:" , code, signal);
                     resolve({ stdout, stderr, code, signal });
                 }).on('data', function(data) {
+                    // if(this.debug) console.log("## STREAM STDOUT:" , data);
                     stdout += data;
                 }).stderr.on('data', function(data) {
+                    // if(this.debug) console.log("## STREAM STDERR:" , data);
                     stderr += data;
                 });
             });
