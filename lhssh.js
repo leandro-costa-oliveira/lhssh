@@ -59,6 +59,10 @@ class LHSSH {
         });
     }
 
+    shell(opt) {
+        return this.conn.shell(opt);
+    }
+
     close(){
         this.conn.end();
     }
