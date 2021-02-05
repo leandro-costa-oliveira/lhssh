@@ -45,6 +45,7 @@ class LHSSH {
             // if(this.debug) console.log("## EXEC:" , cmd);
             this.conn.exec(cmd, function(err, stream) {
                 if (err) reject(err);
+                if(!stream) reject(`LHSSH Exec Sem Stream`);
 
                 stream.on('close', function(code, signal) {
                     // if(this.debug) console.log("## STREAM CLOSE:" , code, signal);
