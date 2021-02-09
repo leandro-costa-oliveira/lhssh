@@ -47,21 +47,26 @@ class LHSSH {
                 if (err) reject(err);
                 if(!stream) reject(`LHSSH Exec Sem Stream`);
 
-                stream.on('close', function(code, signal) {
-                    // if(this.debug) console.log("## STREAM CLOSE:" , code, signal);
-                    resolve({ stdout, stderr, code, signal });
-                });
-                
-                stream.on('data', function(data) {
-                    // if(this.debug) console.log("## STREAM STDOUT:" , data);
-                    stdout += data;
-                });
-                
-                if(stream.stderr){
-                    stream.stderr.on('data', function(data) {
-                        // if(this.debug) console.log("## STREAM STDERR:" , data);
-                        stderr += data;
+                try {
+                    stream.on('close', function(code, signal) {
+                        // if(this.debug) console.log("## STREAM CLOSE:" , code, signal);
+                        resolve({ stdout, stderr, code, signal });
                     });
+                    
+                    stream.on('data', function(data) {
+                        // if(this.debug) console.log("## STREAM STDOUT:" , data);
+                        stdout += data;
+                    });
+                    
+                    if(stream.stderr){
+                        stream.stderr.on('data', function(data) {
+                            // if(this.debug) console.log("## STREAM STDERR:" , data);
+                            stderr += data;
+                        });
+                    }
+                } catch(E) {
+                    console.log("## LHSSH EXEC ERROR:", cmd, E);
+                    reject(E);
                 }
             });
         });
