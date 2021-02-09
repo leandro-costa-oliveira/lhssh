@@ -44,8 +44,8 @@ class LHSSH {
 
             // if(this.debug) console.log("## EXEC:" , cmd);
             this.conn.exec(cmd, function(err, stream) {
-                if (err) reject(err);
-                if(!stream) reject(`LHSSH Exec Sem Stream`);
+                if (err) return reject(err);
+                if(!stream) return reject(`LHSSH Exec Sem Stream`);
 
                 stream.on('close', function(code, signal) {
                     // if(this.debug) console.log("## STREAM CLOSE:" , code, signal);
@@ -94,11 +94,11 @@ class LHSSH {
     }
 
     write(txt, readUntil=null) {
-        if(!this.stream) {
-            throw new Error("acquire a shell frist !");
-        }
-
         return new Promise((resolve, reject) => {
+            if(!this.stream) {
+                return reject("LHSSH: Acquire a shell frist !");
+            }
+
             this.stream.write(txt + '\n', () => {
                 if(readUntil) {
                     console.log("## WRITE SENT:", txt, " WAITING FOR:", readUntil);
