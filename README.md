@@ -4,7 +4,7 @@ A Simple Promise Wrapper for [[SSH2](https://github.com/mscdex/ssh2)].
 ## Requirements
 
 * [node.js](http://nodejs.org/) -- v5.2.0 or newer
-* [ssh2](https://www.npmjs.com/package/ssh2) -- 0.8.2 or newer
+* [ssh2](https://www.npmjs.com/package/ssh2) -- 1.4.0 or newer
 
 ## Installation
     npm i lhssh
