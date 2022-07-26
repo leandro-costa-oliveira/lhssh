@@ -18,6 +18,6 @@
   },
   "homepage": "https://github.com/lokidarkeden/lhssh#readme",
   "dependencies": {
-    "ssh2": "^1.4.0"
+    "ssh2": "^1.11.0"
   }
 }
