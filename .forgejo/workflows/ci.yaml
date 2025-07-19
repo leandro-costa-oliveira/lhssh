@@ -1,0 +1,56 @@
+on:
+  push:
+    branches:
+      - master
+      - development
+  pull_request:
+    branches:
+      - development
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: docker
+    container:
+      image: node:20-alpine
+    steps:
+      - name: Git Clone
+        uses: actions/checkout@v4
+
+      - name: Restore Node Modules Cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Run Tests
+        run: npm run test
+
+      - name: Prepare Package
+        run: cp package.json dist
+
+      - uses: actions/upload-artifact@v3
+        name: Upload Artifact
+        with:
+          name: dist
+          path: dist
+
+  publish:
+    runs-on: docker
+    container:
+      image: node:20-alpine
+    needs: [build-and-test]
+    steps:
+      - name: Publish Npm Packages
+        uses: https://git.lhprovedor.com.br/leandro/devops/.forgejo/actions/publish-npm-package@main
+        with:
+          npm_token: ${{ secrets.NPM_TOKEN }}
+          git_token: ${{ secrets.PACKAGE_PUBLISHER_TOKEN }}
