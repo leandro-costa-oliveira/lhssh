@@ -1,4 +1,4 @@
-import LHSSH from "../lhssh";
+import LHSSH from "../src/lhssh";
 
 describe("LHSSH Integration Tests", () => {
   let lhssh: LHSSH;

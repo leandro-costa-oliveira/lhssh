@@ -1,5 +1,5 @@
 import { Client } from "ssh2";
-import LHSSH from "../lhssh";
+import LHSSH from "../src/lhssh";
 
 // Mock do módulo ssh2
 jest.mock("ssh2", () => {
