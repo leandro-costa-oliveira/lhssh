@@ -1,14 +1,4 @@
-import { Client } from "ssh2";
-
-interface SSHConfig {
-  host: string;
-  port?: number;
-  username: string;
-  password?: string;
-  privateKey?: string | Buffer;
-  passphrase?: string;
-  [key: string]: any;
-}
+import { Client, ConnectConfig } from "ssh2";
 
 interface ExecResult {
   stdout: string;
@@ -20,7 +10,7 @@ interface ExecResult {
 type ReadHandler = () => void;
 
 class LHSSH {
-  private sshConfig: SSHConfig;
+  private sshConfig: ConnectConfig;
   private conn: Client;
   private connected: boolean;
   private _read_handlers: Record<string, ReadHandler>;
@@ -29,7 +19,7 @@ class LHSSH {
   private _read_until?: string;
   private _read_until_resolve?: (value: string) => void;
 
-  constructor(sshConfig: SSHConfig) {
+  constructor(sshConfig: ConnectConfig) {
     this.sshConfig = sshConfig;
     this.conn = new Client();
     this.connected = false;
