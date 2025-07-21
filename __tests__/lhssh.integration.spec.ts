@@ -48,17 +48,18 @@ describe("LHSSH Integration Tests", () => {
     });
 
     it("should handle custom SSH configuration properties", () => {
-      const configWithCustomProps = {
-        host: "example.com",
-        username: "user",
-        password: "pass",
-        algorithms: {
-          kex: ["diffie-hellman-group14-sha256"],
-        },
-        keepaliveInterval: 60000,
-      };
-
-      expect(() => new LHSSH(configWithCustomProps)).not.toThrow();
+      expect(
+        () =>
+          new LHSSH({
+            host: "example.com",
+            username: "user",
+            password: "pass",
+            algorithms: {
+              kex: ["diffie-hellman-group14-sha256"],
+            },
+            keepaliveInterval: 60000,
+          })
+      ).not.toThrow();
     });
   });
 
