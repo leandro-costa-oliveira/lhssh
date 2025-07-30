@@ -1,4 +1,4 @@
-import { Client, ConnectConfig } from "ssh2";
+import { Client, ClientChannel, ConnectConfig } from "ssh2";
 
 interface ExecResult {
   stdout: string;
@@ -60,7 +60,7 @@ class LHSSH {
       let stdout = "";
       let stderr = "";
 
-      this.conn.exec(cmd, (err: Error | undefined, stream: any) => {
+      this.conn.exec(cmd, (err: Error | undefined, stream: ClientChannel) => {
         if (err) return reject(err);
         if (!stream) return reject(new Error(`LHSSH Exec Sem Stream`));
 
@@ -70,6 +70,10 @@ class LHSSH {
 
         stream.on("data", (data: Buffer) => {
           stdout += data.toString();
+        });
+
+        stream.on("exit", (code: number | null, signal: string | undefined) => {
+          resolve({ stdout, stderr, code, signal });
         });
 
         if (stream.stderr) {
