@@ -52,6 +52,10 @@ class LHSSH {
     promises.forEach((promise) => promise.reject(error));
   }
 
+  isConnected(): boolean {
+    return this.connected;
+  }
+
   connect(): Promise<LHSSH> {
     return new Promise((resolve, reject) => {
       this.conn
