@@ -49,11 +49,9 @@ class LHSSH {
     });
   }
 
-  exec(cmd: string): Promise<ExecResult> {
+  async exec(cmd: string): Promise<ExecResult> {
     if (!this.connected) {
-      return this.connect().then(() => {
-        return this.exec(cmd);
-      });
+      await this.connect();
     }
 
     return new Promise((resolve, reject) => {
@@ -74,6 +72,14 @@ class LHSSH {
 
         stream.on("exit", (code: number | null, signal: string | undefined) => {
           resolve({ stdout, stderr, code, signal });
+        });
+
+        stream.on("error", (err: Error) => {
+          reject(err);
+        });
+
+        stream.on("*", (...args: any) => {
+          console.log("LHSSH Exec Unhandled Event:", args);
         });
 
         if (stream.stderr) {
