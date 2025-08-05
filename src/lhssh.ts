@@ -18,12 +18,38 @@ class LHSSH {
   private stream?: any;
   private _read_until?: string;
   private _read_until_resolve?: (value: string) => void;
+  private pendingPromises: Array<{ reject: (error: Error) => void }> = [];
 
   constructor(sshConfig: ConnectConfig) {
     this.sshConfig = sshConfig;
     this.conn = new Client();
     this.connected = false;
     this._read_handlers = {};
+    this.pendingPromises = [];
+    this.setupConnectionErrorHandlers();
+  }
+
+  private setupConnectionErrorHandlers(): void {
+    this.conn.on("error", (error: Error) => {
+      this.connected = false;
+      this.rejectPendingPromises(error);
+    });
+
+    this.conn.on("end", () => {
+      this.connected = false;
+      this.rejectPendingPromises(new Error("CONEXÃO SSH ENCERRADA INESPERADAMENTE"));
+    });
+
+    this.conn.on("close", () => {
+      this.connected = false;
+      this.rejectPendingPromises(new Error("CONEXÃO SSH FECHADA INESPERADAMENTE"));
+    });
+  }
+
+  private rejectPendingPromises(error: Error): void {
+    const promises = [...this.pendingPromises];
+    this.pendingPromises = [];
+    promises.forEach((promise) => promise.reject(error));
   }
 
   connect(): Promise<LHSSH> {
@@ -57,25 +83,57 @@ class LHSSH {
     return new Promise((resolve, reject) => {
       let stdout = "";
       let stderr = "";
+      let isResolved = false;
+
+      // Adiciona esta promise à lista de promises pendentes
+      const promiseHandler = {
+        reject: (error: Error) => {
+          if (!isResolved) {
+            isResolved = true;
+            reject(error);
+          }
+        },
+      };
+      this.pendingPromises.push(promiseHandler);
+
+      // Verificação adicional se ainda está conectado
+      if (!this.connected) {
+        this.removePendingPromise(promiseHandler);
+        return reject(new Error("CONEXÃO SSH PERDIDA ANTES DA EXECUÇÃO"));
+      }
 
       this.conn.exec(cmd, (err: Error | undefined, stream: ClientChannel) => {
-        if (err) return reject(err);
-        if (!stream) return reject(new Error(`LHSSH Exec Sem Stream`));
+        if (err) {
+          this.removePendingPromise(promiseHandler);
+          return reject(err);
+        }
+        if (!stream) {
+          this.removePendingPromise(promiseHandler);
+          return reject(new Error(`LHSSH Exec Sem Stream`));
+        }
 
-        stream.on("close", (code: number | null, signal: string | undefined) => {
-          resolve({ stdout, stderr, code, signal });
-        });
+        const handleSuccess = (code: number | null, signal: string | undefined) => {
+          if (!isResolved) {
+            isResolved = true;
+            this.removePendingPromise(promiseHandler);
+            resolve({ stdout, stderr, code, signal });
+          }
+        };
+
+        const handleError = (error: Error) => {
+          if (!isResolved) {
+            isResolved = true;
+            this.removePendingPromise(promiseHandler);
+            reject(error);
+          }
+        };
+
+        stream.on("close", handleSuccess);
+        stream.on("exit", handleSuccess);
+        stream.on("error", handleError);
 
         stream.on("data", (data: Buffer) => {
           stdout += data.toString();
-        });
-
-        stream.on("exit", (code: number | null, signal: string | undefined) => {
-          resolve({ stdout, stderr, code, signal });
-        });
-
-        stream.on("error", (err: Error) => {
-          reject(err);
         });
 
         stream.on("*", (...args: any) => {
@@ -86,9 +144,18 @@ class LHSSH {
           stream.stderr.on("data", (data: Buffer) => {
             stderr += data.toString();
           });
+
+          stream.stderr.on("error", handleError);
         }
       });
     });
+  }
+
+  private removePendingPromise(promiseHandler: { reject: (error: Error) => void }): void {
+    const index = this.pendingPromises.indexOf(promiseHandler);
+    if (index > -1) {
+      this.pendingPromises.splice(index, 1);
+    }
   }
 
   addReadHandler(txt: string, callback: ReadHandler): void {
@@ -97,7 +164,12 @@ class LHSSH {
 
   shell(): Promise<LHSSH> {
     return new Promise((resolve, reject) => {
+      const promiseHandler = { reject };
+      this.pendingPromises.push(promiseHandler);
+
       this.conn.shell({}, (err: Error | undefined, stream: any) => {
+        this.removePendingPromise(promiseHandler);
+
         if (err) return reject(err);
 
         this.buffer = "";
@@ -110,6 +182,10 @@ class LHSSH {
           .on("data", (data: Buffer) => {
             this.buffer += data.toString();
             this.onData();
+          })
+          .on("error", (error: Error) => {
+            this.connected = false;
+            this.rejectPendingPromises(error);
           });
 
         resolve(this);
@@ -123,12 +199,18 @@ class LHSSH {
         return reject(new Error("LHSSH: Acquire a shell first!"));
       }
 
-      this.stream.write(txt + "\n", () => {
+      this.stream.write(txt + "\n", (error?: Error) => {
+        if (error) {
+          return reject(error);
+        }
+
         if (readUntil) {
           console.log("## WRITE SENT:", txt, " WAITING FOR:", readUntil);
-          return this.readUntil(readUntil).then((ret: string) => {
-            resolve(ret);
-          });
+          return this.readUntil(readUntil)
+            .then((ret: string) => {
+              resolve(ret);
+            })
+            .catch(reject);
         }
 
         resolve(this);
@@ -167,10 +249,14 @@ class LHSSH {
   }
 
   end(): void {
+    this.connected = false;
+    this.rejectPendingPromises(new Error("CONEXÃO SSH ENCERRADA PELO USUÁRIO"));
     this.conn.end();
   }
 
   close(): void {
+    this.connected = false;
+    this.rejectPendingPromises(new Error("CONEXÃO SSH FECHADA PELO USUÁRIO"));
     this.conn.end();
   }
 }

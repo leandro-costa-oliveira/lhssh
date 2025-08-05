@@ -1,6 +1,6 @@
 {
   "name": "lhssh",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "description": "A Simple SSH Promise Wrapper for ssh2",
   "main": "src/lhssh.js",
   "types": "src/lhssh.d.ts",

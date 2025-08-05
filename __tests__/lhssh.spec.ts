@@ -153,6 +153,8 @@ describe("LHSSH", () => {
 
       await expect(lhssh.exec("test command")).rejects.toThrow("Exec failed");
     });
+
+    
   });
 
   describe("addReadHandler", () => {
